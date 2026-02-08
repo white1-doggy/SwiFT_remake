@@ -12,7 +12,15 @@ import torchmetrics
 import torchmetrics.classification
 from torchmetrics.classification import BinaryAccuracy, BinaryAUROC, BinaryROC
 from torchmetrics import  PearsonCorrCoef # Accuracy,
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, roc_curve
+from sklearn.metrics import (
+    accuracy_score,
+    balanced_accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
+)
 import monai.transforms as monai_t
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
@@ -261,6 +269,24 @@ class LitClassifier(pl.LightningModule):
             self.log(f"{mode}_acc", acc, sync_dist=True)
             self.log(f"{mode}_balacc", bal_acc_sk, sync_dist=True)
             self.log(f"{mode}_AUROC", auroc, sync_dist=True)
+
+            if mode == "valid" and self.trainer.is_global_zero:
+                probas = torch.sigmoid(subj_avg_logits).detach().cpu().numpy()
+                preds = (subj_avg_logits >= 0).int().detach().cpu().numpy()
+                targets = subj_targets.detach().cpu().numpy()
+                precision = precision_score(targets, preds, zero_division=0)
+                recall = recall_score(targets, preds, zero_division=0)
+                f1 = f1_score(targets, preds, zero_division=0)
+                auc = roc_auc_score(targets, probas)
+                acc_value = accuracy_score(targets, preds)
+                print(
+                    "valid metrics - "
+                    f"acc: {acc_value:.4f}, "
+                    f"auc: {auc:.4f}, "
+                    f"precision: {precision:.4f}, "
+                    f"recall: {recall:.4f}, "
+                    f"f1: {f1:.4f}"
+                )
 
         # regression target is normalized
         elif self.hparams.downstream_task == 'age' or self.hparams.downstream_task == 'int_total' or self.hparams.downstream_task == 'int_fluid' or self.hparams.downstream_task_type == 'regression':          
