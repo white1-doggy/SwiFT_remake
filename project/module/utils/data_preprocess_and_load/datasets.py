@@ -514,7 +514,10 @@ class HCPTask(BaseDataset):
                     y_norm = torch.load(norm_path).unsqueeze(0)
                     y.append(y_norm)
 
-        return torch.cat(y, dim=4)
+        if not y:
+            raise IndexError(f"No frames loaded from {split_data_path} starting at {start_frame}")
+        concat_dim = y[0].dim() - 1
+        return torch.cat(y, dim=concat_dim)
 
     def __getitem__(self, index):
         _, subject, split_data_path, start_frame, num_frames, target, run = self.data[index]
