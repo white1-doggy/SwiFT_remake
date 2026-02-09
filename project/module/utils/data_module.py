@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 import numpy as np
 import pandas as pd
 from torch.utils.data import DataLoader, Subset
-from .data_preprocess_and_load.datasets import S1200, ABCD, UKB, Dummy
+from .data_preprocess_and_load.datasets import S1200, ABCD, UKB, Dummy, HCPTask
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from .parser import str2bool
 
@@ -36,6 +36,8 @@ class fMRIDataModule(pl.LightningDataModule):
             return ABCD
         elif self.hparams.dataset_name == 'UKB':
             return UKB
+        elif self.hparams.dataset_name == 'HCPTask':
+            return HCPTask
         else:
             raise NotImplementedError
 
@@ -163,6 +165,11 @@ class fMRIDataModule(pl.LightningDataModule):
                     final_dict[str(subject[:7])] = [sex,target]
                 else:
                     continue 
+
+        elif self.hparams.dataset_name == "HCPTask":
+            subject_list = [subject for subject in os.listdir(self.hparams.image_path)]
+            for subject in subject_list:
+                final_dict[subject] = [0, 0]
         
         return final_dict
 
